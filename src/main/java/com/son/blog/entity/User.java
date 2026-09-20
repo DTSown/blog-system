@@ -3,8 +3,13 @@ package com.son.blog.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 @Entity
 @Table(name = "users")
+@SQLDelete(sql = "UPDATE users SET deleted = true WHERE id=?")
+@SQLRestriction("deleted=false")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,4 +32,8 @@ public class User {
 
     @Column(length = 20)
     private String role;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
 }

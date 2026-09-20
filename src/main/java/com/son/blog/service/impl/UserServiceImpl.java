@@ -8,6 +8,9 @@ import com.son.blog.exception.ResourceNotFoundException;
 import com.son.blog.repository.UserRepository;
 import com.son.blog.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +24,15 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    private boolean isCurrentUserSuperAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getAuthorities() != null) {
+            return auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        }
+        return false;
+    }
+
     @Override
     public UserResponse createUser(UserRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -30,11 +42,16 @@ public class UserServiceImpl implements UserService {
             throw new BadRequestException("Email already exists!");
         }
 
+        String targetRole = request.getRole() != null ? request.getRole() : "ROLE_USER";
+        if (("ROLE_ADMIN".equals(targetRole) || "ROLE_SUPER_ADMIN".equals(targetRole)) && !isCurrentUserSuperAdmin()) {
+            throw new AccessDeniedException("You do not have permission to create an admin account");
+        }
+
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
-                .role(request.getRole() != null ? request.getRole() : "ROLE_USER")
+                .role(targetRole)
                 .build();
 
         User savedUser = userRepository.save(user);
@@ -60,6 +77,14 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
+        if (("ROLE_ADMIN".equals(user.getRole()) || "ROLE_SUPER_ADMIN".equals(user.getRole())) && !isCurrentUserSuperAdmin()) {
+            throw new AccessDeniedException("You do not have permission to modify an admin account");
+        }
+
+        if (request.getRole() != null && ("ROLE_ADMIN".equals(request.getRole()) || "ROLE_SUPER_ADMIN".equals(request.getRole())) && !isCurrentUserSuperAdmin()) {
+            throw new AccessDeniedException("You do not have permission to grant admin roles");
+        }
+
         user.setEmail(request.getEmail());
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -74,9 +99,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("User not found with id: " + id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+
+        if (("ROLE_ADMIN".equals(user.getRole()) || "ROLE_SUPER_ADMIN".equals(user.getRole())) && !isCurrentUserSuperAdmin()) {
+            throw new AccessDeniedException("You do not have permission to delete an admin account");
         }
+
         userRepository.deleteById(id);
     }
 
