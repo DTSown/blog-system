@@ -1,5 +1,6 @@
 package com.son.blog.controller;
 
+import com.son.blog.dto.ApiResponse;
 import com.son.blog.dto.AuthResponse;
 import com.son.blog.dto.LoginRequest;
 import com.son.blog.dto.RegisterRequest;
@@ -21,18 +22,18 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return new ResponseEntity<>(authService.register(request), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        return new ResponseEntity<>(ApiResponse.success(authService.register(request)), HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(authService.login(request)));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout() {
+    public ResponseEntity<ApiResponse<String>> logout() {
         authService.logout();
-        return ResponseEntity.ok("Logged out successfully");
+        return ResponseEntity.ok(ApiResponse.success(null, "Logged out successfully"));
     }
 }

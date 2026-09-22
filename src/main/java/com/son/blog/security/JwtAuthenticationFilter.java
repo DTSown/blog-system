@@ -22,6 +22,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+    private final org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
 
     @Override
     protected void doFilterInternal(
@@ -41,6 +42,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         jwt = authHeader.substring(7);
         try {
+            String jti = jwtUtil.extractJti(jwt);
+            if (jti != null) {
+                String blacklistKey = "token_blacklist:" + jti;
+                if (Boolean.TRUE.equals(redisTemplate.hasKey(blacklistKey))) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+            }
+
             username = jwtUtil.extractUsername(jwt);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
