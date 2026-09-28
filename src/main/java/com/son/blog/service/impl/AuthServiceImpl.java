@@ -43,7 +43,7 @@ public class AuthServiceImpl implements AuthService {
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
-                .role("ROLE_USER")
+                .role(com.son.blog.constant.RoleConstants.ROLE_USER)
                 .build();
 
         userRepository.save(user);

@@ -8,10 +8,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 public interface PostService {
-    PostResponse createPost(PostRequest request);
+    PostResponse createPost(PostRequest request, java.util.List<org.springframework.web.multipart.MultipartFile> files);
     PageResponse<PostResponse> getAllPosts(Specification<Post> spec, Pageable pageable);
     PostResponse getPostById(Long id);
-    PostResponse updatePost(Long id, PostRequest request);
+    PostResponse updatePost(Long id, PostRequest request, java.util.List<org.springframework.web.multipart.MultipartFile> files);
     void deletePost(Long id);
     void toggleLikePost(Long id);
 }

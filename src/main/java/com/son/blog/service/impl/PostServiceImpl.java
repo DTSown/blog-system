@@ -49,12 +49,12 @@ public class PostServiceImpl implements PostService {
     private boolean isCurrentUserSuperAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+                .anyMatch(a -> a.getAuthority().equals(com.son.blog.constant.RoleConstants.ROLE_SUPER_ADMIN));
     }
 
     @Override
     @Transactional
-    public PostResponse createPost(PostRequest request) {
+    public PostResponse createPost(PostRequest request, List<org.springframework.web.multipart.MultipartFile> files) {
         User currentUser = getCurrentUser();
 
         PostStatus status = request.getStatus() != null ? request.getStatus() : PostStatus.PUBLISHED;
@@ -70,12 +70,18 @@ public class PostServiceImpl implements PostService {
         if (request.getAttachmentIds() != null && !request.getAttachmentIds().isEmpty()) {
             List<Attachment> attachments = attachmentRepository.findAllById(request.getAttachmentIds());
             for (Attachment attachment : attachments) {
-                if (!attachment.getUploader().getId().equals(currentUser.getId())) {
-                    throw new AccessDeniedException("You are not the owner of attachment ID: " + attachment.getId());
-                }
                 if (attachment.getPost() != null) {
                     throw new AppException(ErrorCode.VALIDATION_FAILED);
                 }
+                post.addAttachment(attachment);
+            }
+        }
+
+        if (files != null && !files.isEmpty()) {
+            for (org.springframework.web.multipart.MultipartFile file : files) {
+                AttachmentResponse attResponse = fileStorageService.uploadFile(file);
+                Attachment attachment = attachmentRepository.findById(attResponse.getId())
+                        .orElseThrow(() -> new AppException(ErrorCode.VALIDATION_FAILED));
                 post.addAttachment(attachment);
             }
         }
@@ -90,7 +96,6 @@ public class PostServiceImpl implements PostService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), PostStatus.PUBLISHED));
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("deleted"), false));
         } else {
             if (!isCurrentUserSuperAdmin()) {
                 User currentUser = getCurrentUser();
@@ -99,7 +104,6 @@ public class PostServiceImpl implements PostService {
                         cb.equal(root.get("author").get("id"), currentUser.getId())
                 );
                 spec = spec.and(statusSpec);
-                spec = spec.and((root, query, cb) -> cb.equal(root.get("deleted"), false));
             }
         }
 
@@ -124,10 +128,6 @@ public class PostServiceImpl implements PostService {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
                 
-        if (post.isDeleted() && !isCurrentUserSuperAdmin()) {
-            throw new AppException(ErrorCode.POST_NOT_FOUND);
-        }
-                
         // Only author or admin can see draft or private posts
         if (post.getStatus() == PostStatus.DRAFT || post.getStatus() == PostStatus.PRIVATE) {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -145,13 +145,9 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public PostResponse updatePost(Long id, PostRequest request) {
+    public PostResponse updatePost(Long id, PostRequest request, List<org.springframework.web.multipart.MultipartFile> files) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
-
-        if (post.isDeleted()) {
-            throw new AppException(ErrorCode.POST_NOT_FOUND);
-        }
 
         User currentUser = getCurrentUser();
         if (!post.getAuthor().getId().equals(currentUser.getId())) {
@@ -182,15 +178,21 @@ public class PostServiceImpl implements PostService {
             // Link new attachments
             List<Attachment> requestedAttachments = attachmentRepository.findAllById(request.getAttachmentIds());
             for (Attachment attachment : requestedAttachments) {
-                if (!attachment.getUploader().getId().equals(currentUser.getId())) {
-                    throw new AccessDeniedException("You are not the owner of attachment ID: " + attachment.getId());
-                }
                 if (attachment.getPost() != null && !attachment.getPost().getId().equals(post.getId())) {
                     throw new AppException(ErrorCode.VALIDATION_FAILED);
                 }
                 if (attachment.getPost() == null) {
                     post.addAttachment(attachment);
                 }
+            }
+        }
+
+        if (files != null && !files.isEmpty()) {
+            for (org.springframework.web.multipart.MultipartFile file : files) {
+                AttachmentResponse attResponse = fileStorageService.uploadFile(file);
+                Attachment attachment = attachmentRepository.findById(attResponse.getId())
+                        .orElseThrow(() -> new AppException(ErrorCode.VALIDATION_FAILED));
+                post.addAttachment(attachment);
             }
         }
 
@@ -203,10 +205,6 @@ public class PostServiceImpl implements PostService {
     public void deletePost(Long id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
-
-        if (post.isDeleted()) {
-            throw new AppException(ErrorCode.POST_NOT_FOUND);
-        }
 
         User currentUser = getCurrentUser();
         if (!post.getAuthor().getId().equals(currentUser.getId()) && !isCurrentUserSuperAdmin()) {
@@ -229,10 +227,6 @@ public class PostServiceImpl implements PostService {
     public void toggleLikePost(Long id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
-
-        if (post.isDeleted()) {
-            throw new AppException(ErrorCode.POST_NOT_FOUND);
-        }
 
         User currentUser = getCurrentUser();
         boolean isLiked = postRepository.countLikesByUser(id, currentUser.getId()) > 0;
@@ -268,11 +262,14 @@ public class PostServiceImpl implements PostService {
     }
 
     private PostResponse mapToResponse(Post post) {
-        UserSummary author = UserSummary.builder()
-                .id(post.getAuthor().getId())
-                .username(post.getAuthor().getUsername())
-                .email(post.getAuthor().getEmail())
-                .build();
+        UserSummary author = null;
+        if (post.getAuthor() != null) {
+            author = UserSummary.builder()
+                    .id(post.getAuthor().getId())
+                    .username(post.getAuthor().getUsername())
+                    .email(post.getAuthor().getEmail())
+                    .build();
+        }
 
         List<AttachmentResponse> attachments = post.getAttachments().stream()
                 .map(att -> AttachmentResponse.builder()
@@ -293,7 +290,7 @@ public class PostServiceImpl implements PostService {
                 .content(post.getContent())
                 .author(author)
                 .attachments(attachments)
-                .likeCount(post.getLikeCount() != null ? post.getLikeCount() : 0)
+                .likeCount(post.getLikeCount() != null ? post.getLikeCount() : 0L)
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .deleted(post.isDeleted())

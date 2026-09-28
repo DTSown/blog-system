@@ -1,32 +1,22 @@
-package com.son.blog.controller;
+package com.son.blog.controller.public_api;
 
-import com.son.blog.dto.AttachmentResponse;
 import com.son.blog.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 
 @RestController
-@RequestMapping("/api/files")
+@RequestMapping("/api/public/files")
 @RequiredArgsConstructor
-public class FileController {
+public class PublicFileController {
 
     private final FileStorageService fileStorageService;
-
-    @PostMapping("/upload")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<AttachmentResponse> uploadFile(@RequestParam("file") MultipartFile file) {
-        AttachmentResponse response = fileStorageService.uploadFile(file);
-        return ResponseEntity.ok(response);
-    }
 
     @GetMapping("/download/{fileName:.+}")
     public ResponseEntity<Resource> downloadFile(@PathVariable String fileName, HttpServletRequest request) {

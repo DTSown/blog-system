@@ -21,7 +21,7 @@ public class PostResponse {
     private String content;
     private UserSummary author;
     private List<AttachmentResponse> attachments;
-    private Integer likeCount;
+    private Long likeCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean deleted;

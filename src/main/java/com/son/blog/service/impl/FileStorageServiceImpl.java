@@ -77,17 +77,12 @@ public class FileStorageServiceImpl implements FileStorageService {
                     .path(storedFileName)
                     .toUriString();
 
-            String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-            User uploader = userRepository.findByUsername(currentUsername)
-                    .orElseThrow(() -> new BadRequestException("Uploader not found"));
-
             Attachment attachment = Attachment.builder()
                     .originalFileName(originalFileName)
                     .storedFileName(storedFileName)
                     .fileSize(file.getSize())
                     .fileType(mimeType)
                     .fileUrl(fileDownloadUri)
-                    .uploader(uploader)
                     .build();
 
             Attachment savedAttachment = attachmentRepository.save(attachment);
@@ -113,7 +108,6 @@ public class FileStorageServiceImpl implements FileStorageService {
             if (!filePath.startsWith(this.fileStorageLocation)) {
                 throw new BadRequestException("Invalid file path!");
             }
-
             Resource resource = new UrlResource(filePath.toUri());
             if (resource.exists()) {
                 return resource;

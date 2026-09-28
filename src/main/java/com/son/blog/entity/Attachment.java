@@ -7,13 +7,17 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "attachments")
+@Table(name = "attachments", indexes = {
+        @Index(name = "idx_attachment_post", columnList = "post_id")
+})
+@org.hibernate.annotations.SQLDelete(sql = "UPDATE attachments SET deleted = true, deleted_at = CURRENT_TIMESTAMP WHERE id=?")
+@org.hibernate.annotations.SQLRestriction("deleted=false")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Attachment {
+public class Attachment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,13 +41,4 @@ public class Attachment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     private Post post;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "uploader_id", nullable = false)
-    @org.hibernate.annotations.NotFound(action = org.hibernate.annotations.NotFoundAction.IGNORE)
-    private User uploader;
-
-    @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
 }

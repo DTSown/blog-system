@@ -29,8 +29,8 @@ public class CustomUserDetailsService implements UserDetailsService {
                     .password(userCache.getPassword())
                     .email(userCache.getEmail())
                     .role(userCache.getRole())
-                    .deleted(userCache.isDeleted())
                     .build();
+            user.setDeleted(userCache.isDeleted());
         } else {
             user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));

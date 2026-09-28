@@ -21,7 +21,7 @@ public class DataInitializer implements CommandLineRunner {
                     .username("superadmin")
                     .password(passwordEncoder.encode("superadmin123"))
                     .email("superadmin@example.com")
-                    .role("ROLE_SUPER_ADMIN")
+                    .role(com.son.blog.constant.RoleConstants.ROLE_SUPER_ADMIN)
                     .build();
             userRepository.save(superAdmin);
             System.out.println("Default Super Admin created: superadmin / superadmin123");

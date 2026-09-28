@@ -13,8 +13,12 @@ import java.util.List;
 import java.util.Set;
 
 @Entity
-@Table(name = "posts")
-@org.hibernate.annotations.SQLDelete(sql = "UPDATE posts SET deleted = true WHERE id=?")
+@Table(name = "posts", indexes = {
+        @Index(name = "idx_post_status", columnList = "status"),
+        @Index(name = "idx_post_author", columnList = "author_id")
+})
+@org.hibernate.annotations.SQLDelete(sql = "UPDATE posts SET deleted = true, deleted_at = CURRENT_TIMESTAMP WHERE id=?")
+@org.hibernate.annotations.SQLRestriction("deleted=false")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -41,7 +45,6 @@ public class Post extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
-    @org.hibernate.annotations.NotFound(action = org.hibernate.annotations.NotFoundAction.IGNORE)
     private User author;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -60,17 +63,7 @@ public class Post extends BaseEntity {
     private Set<User> likedBy = new HashSet<>();
 
     @Formula("(SELECT COUNT(*) FROM post_likes l WHERE l.post_id = id)")
-    private Integer likeCount;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean deleted = false;
-
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
-
-    @Column(name = "deleted_by", length = 50)
-    private String deletedBy;
+    private Long likeCount;
 
     public void addAttachment(Attachment attachment) {
         attachments.add(attachment);

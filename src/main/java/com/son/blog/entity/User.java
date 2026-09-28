@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
-@SQLDelete(sql = "UPDATE users SET deleted = true WHERE id=?")
+@SQLDelete(sql = "UPDATE users SET deleted = true, deleted_at = CURRENT_TIMESTAMP WHERE id=?")
 @SQLRestriction("deleted=false")
 @Getter
 @Setter
@@ -35,13 +35,4 @@ public class User extends BaseEntity {
     @Column(length = 20)
     private String role;
 
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean deleted = false;
-
-    @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
-
-    @Column(name = "deleted_by", length = 50)
-    private String deletedBy;
 }

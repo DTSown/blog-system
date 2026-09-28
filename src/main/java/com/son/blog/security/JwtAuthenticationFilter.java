@@ -46,7 +46,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jti != null) {
                 String blacklistKey = "token_blacklist:" + jti;
                 if (Boolean.TRUE.equals(redisTemplate.hasKey(blacklistKey))) {
-                    filterChain.doFilter(request, response);
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token has been revoked");
                     return;
                 }
             }

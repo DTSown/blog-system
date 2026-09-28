@@ -1,4 +1,4 @@
-package com.son.blog.controller;
+package com.son.blog.controller.public_api;
 
 import com.son.blog.dto.ApiResponse;
 import com.son.blog.dto.AuthResponse;
@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/public/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class PublicAuthController {
 
     private final AuthService authService;
 
@@ -29,11 +29,5 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authService.login(request)));
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<String>> logout() {
-        authService.logout();
-        return ResponseEntity.ok(ApiResponse.success(null, "Logged out successfully"));
     }
 }

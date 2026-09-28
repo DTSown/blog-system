@@ -11,6 +11,13 @@ import java.util.Optional;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificationExecutor<Post> {
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"author", "attachments"})
+    org.springframework.data.domain.Page<Post> findAll(org.springframework.data.jpa.domain.Specification<Post> spec, org.springframework.data.domain.Pageable pageable);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"author", "attachments"})
+    Optional<Post> findById(Long id);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"author", "attachments"})
     Optional<Post> findBySlug(String slug);
     boolean existsBySlug(String slug);
 

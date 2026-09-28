@@ -34,7 +34,7 @@ public class UserServiceImpl implements UserService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getAuthorities() != null) {
             return auth.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+                    .anyMatch(a -> a.getAuthority().equals(com.son.blog.constant.RoleConstants.ROLE_SUPER_ADMIN));
         }
         return false;
     }
@@ -48,8 +48,8 @@ public class UserServiceImpl implements UserService {
             throw new BadRequestException("Email already exists!");
         }
 
-        String targetRole = request.getRole() != null ? request.getRole() : "ROLE_USER";
-        if (("ROLE_ADMIN".equals(targetRole) || "ROLE_SUPER_ADMIN".equals(targetRole)) && !isCurrentUserSuperAdmin()) {
+        String targetRole = request.getRole() != null ? request.getRole() : com.son.blog.constant.RoleConstants.ROLE_USER;
+        if ((com.son.blog.constant.RoleConstants.ROLE_ADMIN.equals(targetRole) || com.son.blog.constant.RoleConstants.ROLE_SUPER_ADMIN.equals(targetRole)) && !isCurrentUserSuperAdmin()) {
             throw new AccessDeniedException("You do not have permission to create an admin account");
         }
 
@@ -97,11 +97,11 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-        if (("ROLE_ADMIN".equals(user.getRole()) || "ROLE_SUPER_ADMIN".equals(user.getRole())) && !isCurrentUserSuperAdmin()) {
+        if ((com.son.blog.constant.RoleConstants.ROLE_ADMIN.equals(user.getRole()) || com.son.blog.constant.RoleConstants.ROLE_SUPER_ADMIN.equals(user.getRole())) && !isCurrentUserSuperAdmin()) {
             throw new AccessDeniedException("You do not have permission to modify an admin account");
         }
 
-        if (request.getRole() != null && ("ROLE_ADMIN".equals(request.getRole()) || "ROLE_SUPER_ADMIN".equals(request.getRole())) && !isCurrentUserSuperAdmin()) {
+        if (request.getRole() != null && (com.son.blog.constant.RoleConstants.ROLE_ADMIN.equals(request.getRole()) || com.son.blog.constant.RoleConstants.ROLE_SUPER_ADMIN.equals(request.getRole())) && !isCurrentUserSuperAdmin()) {
             throw new AccessDeniedException("You do not have permission to grant admin roles");
         }
 
@@ -126,7 +126,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-        if (("ROLE_ADMIN".equals(user.getRole()) || "ROLE_SUPER_ADMIN".equals(user.getRole())) && !isCurrentUserSuperAdmin()) {
+        if ((com.son.blog.constant.RoleConstants.ROLE_ADMIN.equals(user.getRole()) || com.son.blog.constant.RoleConstants.ROLE_SUPER_ADMIN.equals(user.getRole())) && !isCurrentUserSuperAdmin()) {
             throw new AccessDeniedException("You do not have permission to delete an admin account");
         }
 
@@ -157,6 +157,8 @@ public class UserServiceImpl implements UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .deleted(user.isDeleted())
+                .deletedAt(user.getDeletedAt())
                 .build();
     }
 }
